@@ -8,50 +8,74 @@ WQAA.mapIds = {1536, 1533, 1565, 1525, 863, 864, 942, 896, 1961, 1960}
 function WQAA:OnInitialize()
 	WQAA:RegisterChatCommand("wqaa", "SlashHandler")
 
-	WQAA.Frame = CreateFrame("Frame", "WorldQuestAchievementAlarm", UIParent)
-	WQAA.Frame:Hide()
-	WQAA.Frame:ClearAllPoints()
-	WQAA.Frame:SetPoint("TOP", "UIParent", "TOP", 0, -225)
-	WQAA.Frame:SetWidth(800)
-	WQAA.Frame:SetHeight(400)
-	WQAA.Frame:SetFrameStrata("DIALOG")
-	WQAA.Frame:SetMovable(true)
-	WQAA.Frame:EnableMouse(true)
-	WQAA.Frame:SetClampedToScreen(true)
-	WQAA.Frame:SetBackdrop({
-		bgFile = "Interface/Tooltips/UI-Tooltip-Background",
-		edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
-		tile = true, tileSize = 16, edgeSize = 16,
-		insets = { left = 4, right = 4, top = 4, bottom = 4 }
-	})
-	WQAA.Frame:SetBackdropColor(0, 0, 0, 1);
+	if WQAA.Frame == nil then
+		WQAA.frame = CreateFrame("Frame", "WQAAList", UIParent, "DialogBoxFrame")
 
-	-- Resizing
-	WQAA.Frame:SetResizable(true)
-	WQAA.Frame:SetMinResize(150, 100)
-	local resizeButton = CreateFrame("Button", "WQAAEditBoxResizeButton", ATTEditBox)
-	resizeButton:SetPoint("BOTTOMRIGHT", -6, 7)
-	resizeButton:SetSize(16, 16)
-	resizeButton:SetNormalTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Up")
-	resizeButton:SetHighlightTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Highlight")
-	resizeButton:SetPushedTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Down")
-	resizeButton:SetScript("OnMouseDown", function(self, button)
-		if button == "LeftButton" then
-			f:StartSizing("BOTTOMRIGHT")
-			self:GetHighlightTexture():Hide() -- more noticeable
-		end
-	end)
-	resizeButton:SetScript("OnMouseUp", function(self, button)
-		f:StopMovingOrSizing()
-		self:GetHighlightTexture():Show()
-		eb:SetWidth(sf:GetWidth())
-	end)
+		WQAA.frame:SetPoint("CENTER")
+		WQAA.frame:SetSize(600, 500)
+		WQAA.frame:SetBackdrop({
+			bgFile = "Interface/Tooltips/UI-Tooltip-Background",
+			edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
+			tile = true, tileSize = 16, edgeSize = 16,
+			insets = { left = 4, right = 4, top = 4, bottom = 4 }
+		})
+		WQAA.frame:SetBackdropColor(0, 0, 0, 1);
+		WQAA.frame:SetMovable(true)
+		WQAA.frame:SetClampedToScreen(true)
+		WQAA.frame:SetScript("OnMouseDown", function(self, button)
+			if button == "LeftButton" then
+				self:StartMoving()
+			end
+		end)
+		WQAA.frame:SetScript("OnMouseUp", WQAA.frame.StopMovingOrSizing)
 
-	sf = CreateFrame("ScrollFrame", "WQAAEditBoxScrollFrame", WorldQuestAchievementAlarm, "UIPanelScrollFrameTemplate")
-	sf:SetPoint("LEFT", 16, 0)
-	sf:SetPoint("RIGHT", -32, 0)
-	sf:SetPoint("TOP", 0, -16)
-	sf:SetPoint("BOTTOM", ATTEditBoxButton, "TOP", 0, 0)
+		-- ScrollFrame
+		local sf = CreateFrame("ScrollFrame", "WQAAListScrollFrame", WQAAList, "UIPanelScrollFrameTemplate")
+		sf:SetPoint("LEFT", 16, 0)
+		sf:SetPoint("RIGHT", -32, 0)
+		sf:SetPoint("TOP", 0, -16)
+		sf:SetPoint("BOTTOM", WQAAListButton, "TOP", 0, 0)
+
+		-- EditBox
+		local eb = CreateFrame("EditBox", "WQAAListEditBox", WQAAListScrollFrame)
+		eb:SetSize(sf:GetSize())
+		eb:SetMultiLine(true)
+		eb:SetAutoFocus(false) -- dont automatically focus
+		eb:SetFontObject("ChatFontNormal")
+		eb:SetScript("OnEscapePressed", function() WQAA.frame:Hide() end)
+		WQAAListButton:SetScript("OnClick", function (self, button, down)
+			if self:GetParent().OnClick then
+				self:GetParent().OnClick(WQAAListEditBox:GetText());
+			end
+			self:GetParent():Hide();
+		end);
+		sf:SetScrollChild(eb)
+
+		-- Resizable
+		WQAA.frame:SetResizable(true)
+		WQAA.frame:SetMinResize(150, 100)
+
+		local rb = CreateFrame("Button", "WQAAListResizeButton", WQAAList)
+		rb:SetPoint("BOTTOMRIGHT", -6, 7)
+		rb:SetSize(16, 16)
+
+		rb:SetNormalTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Up")
+		rb:SetHighlightTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Highlight")
+		rb:SetPushedTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Down")
+
+		rb:SetScript("OnMouseDown", function(self, button)
+			if button == "LeftButton" then
+				WQAA.frame:StartSizing("BOTTOMRIGHT")
+				self:GetHighlightTexture():Hide() -- more noticeable
+			end
+		end)
+		rb:SetScript("OnMouseUp", function(self, button)
+			f:StopMovingOrSizing()
+			self:GetHighlightTexture():Show()
+			eb:SetWidth(sf:GetWidth())
+		end)
+		WQAA.frame:Show()
+    end
 end
 
 function WQAA:CheckAvailableWQs()
