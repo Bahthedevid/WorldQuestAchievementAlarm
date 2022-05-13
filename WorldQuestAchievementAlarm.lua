@@ -1,15 +1,67 @@
-local WQAA = LibStub("AceAddon-3.0"):NewAddon("WorldQuestAchievementAlarm", "AceConsole-3.0")
-local AceGUI = LibStub("AceGUI-3.0")
+local WorldQuestAchievementAlarm = LibStub("AceAddon-3.0"):NewAddon("WorldQuestAchievementAlarm", "AceConsole-3.0")
 
-WQAA.questIds = {59717, 52798, 51957, 51983, 51173, 50665, 50717, 50899, 51977, 51947, 51974, 51976, 51978, 54415, 54689, 63972, 63836, 63837, 63945, 63846, 63773, 64016, 63989, 64017, 59705}
+local WQAA = WorldQuestAchievementAlarm
+
+WQAA.questIds = {58207, 58437, 59717, 52798, 51957, 51983, 51173, 50665, 50717, 50899, 51977, 51947, 51974, 51976, 51978, 54415, 54689, 63972, 63836, 63837, 63945, 63846, 63773, 64016, 63989, 64017, 59705}
 WQAA.mapIds = {1536, 1533, 1565, 1525, 863, 864, 942, 896, 1961, 1960}
+
+function WQAA:OnInitialize()
+	WQAA:RegisterChatCommand("wqaa", "SlashHandler")
+
+	WQAA.Frame = CreateFrame("Frame", "WorldQuestAchievementAlarm", UIParent)
+	WQAA.Frame:Hide()
+	WQAA.Frame:ClearAllPoints()
+	WQAA.Frame:SetPoint("TOP", "UIParent", "TOP", 0, -225)
+	WQAA.Frame:SetWidth(800)
+	WQAA.Frame:SetHeight(400)
+	WQAA.Frame:SetFrameStrata("DIALOG")
+	WQAA.Frame:SetMovable(true)
+	WQAA.Frame:EnableMouse(true)
+	WQAA.Frame:SetClampedToScreen(true)
+	WQAA.Frame:SetBackdrop({
+		bgFile = "Interface/Tooltips/UI-Tooltip-Background",
+		edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
+		tile = true, tileSize = 16, edgeSize = 16,
+		insets = { left = 4, right = 4, top = 4, bottom = 4 }
+	})
+	WQAA.Frame:SetBackdropColor(0, 0, 0, 1);
+
+	-- Resizing
+	WQAA.Frame:SetResizable(true)
+	WQAA.Frame:SetMinResize(150, 100)
+	local resizeButton = CreateFrame("Button", "WQAAEditBoxResizeButton", ATTEditBox)
+	resizeButton:SetPoint("BOTTOMRIGHT", -6, 7)
+	resizeButton:SetSize(16, 16)
+	resizeButton:SetNormalTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Up")
+	resizeButton:SetHighlightTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Highlight")
+	resizeButton:SetPushedTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Down")
+	resizeButton:SetScript("OnMouseDown", function(self, button)
+		if button == "LeftButton" then
+			f:StartSizing("BOTTOMRIGHT")
+			self:GetHighlightTexture():Hide() -- more noticeable
+		end
+	end)
+	resizeButton:SetScript("OnMouseUp", function(self, button)
+		f:StopMovingOrSizing()
+		self:GetHighlightTexture():Show()
+		eb:SetWidth(sf:GetWidth())
+	end)
+
+	sf = CreateFrame("ScrollFrame", "WQAAEditBoxScrollFrame", WorldQuestAchievementAlarm, "UIPanelScrollFrameTemplate")
+	sf:SetPoint("LEFT", 16, 0)
+	sf:SetPoint("RIGHT", -32, 0)
+	sf:SetPoint("TOP", 0, -16)
+	sf:SetPoint("BOTTOM", ATTEditBoxButton, "TOP", 0, 0)
+end
 
 function WQAA:CheckAvailableWQs()
 	local availableQuests = {}
 	for _, mapId in ipairs(WQAA.mapIds) do
+		WQAA:Print("Getting map info")
 		local mapInfo = C_Map.GetMapInfo(mapId)
+		WQAA:Print("Getting quests by map ID")
 		local mapQuests = C_TaskQuest.GetQuestsForPlayerByMapID(mapId)
-
+		WQAA:Print(mapQuests)
 		local availableMapQuests = {}
 		for _, info in pairs(mapQuests) do
 			if WQAA:isInTable(WQAA.questIds, info.questId) == true then
@@ -24,25 +76,25 @@ function WQAA:CheckAvailableWQs()
 	end
 	
 	if next(availableQuests) ~= nil then
-		local frame = AceGUI:Create("Frame")
-		frame:SetTitle("WQAA's WQ list")
-		frame:SetLayout("List")
-		frame:SetWidth(225)
-		frame:SetHeight(200)
-
+		WQAA:Print("Available quests: ")
+		WQAA:Print(availableQuests)
 		for mapName, quests in pairs(availableQuests) do
 			WQAA:Print(quests[1])
-			local h = AceGUI:Create("Heading")
-			h:SetText(mapName)
-			h:SetWidth(200)
-			frame:AddChild(h)
-
-			for _, quest in pairs(quests) do
-				local l = AceGUI:Create("InteractiveLabel")
-				l:SetText(quest)
-				l:SetWidth(200)
-				l:SetColor(0, 255, 0)
-				frame:AddChild(l)
+			for index, quest in pairs(quests) do
+				local fontString = WQAA.Frame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+				fontString:SetText(quest)
+				fontString:SetJustifyH("LEFT")
+				fontString:SetJustifyV("TOP")
+	
+				fontString:SetPoint("LEFT", 11, 0)
+				fontString:SetPoint("RIGHT", -12, 0)
+				if index > 1 then
+					-- Change the second 0 if you want some vertical spacing:
+					fontString:SetPoint("TOP", frame.fontStrings[i-1], "BOTTOM", 0, 5)
+				else
+					-- Use the frame's background inset for the vertical offset:
+					fontString:SetPoint("TOP", 0, -12)
+				end
 			end
 		end
 	else
@@ -56,13 +108,28 @@ function WQAA:OnEnable()
 	--	WQAA:ToastFakeAchievement()
 end
 
+function WQAA:SlashHandler(input)
+    if WQAA.Frame:IsShown() then
+        WQAA.Close()
+    else
+        WQAA.Open()
+    end
+end
+
+function WQAA:Close()
+    WQAA.Frame:Hide()
+end
+
+function WQAA.Open()
+    WQAA.Frame:Show()
+end
+
 function WQAA:isInTable(tab, val)
     for index, value in ipairs(tab) do
         if value == val then
             return true
         end
     end
-
     return false
 end 
 
