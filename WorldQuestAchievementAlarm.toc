@@ -2,6 +2,7 @@
 ## Title: World Quest Achievement Alarm
 ## Author: Frederik Riis Nielsen, Michal Kroupa
 ## Version: 0.1
+## SavedVariables: WQAAQuestData
 
 Libs\LibStub\LibStub.lua
 Libs\AceAddon-3.0\AceAddon-3.0.xml
@@ -10,3 +11,4 @@ Libs\AceGUI-3.0\AceGUI-3.0.xml
 
 Templates.xml
 WorldQuestAchievementAlarm.lua
+AchievementDB.lua

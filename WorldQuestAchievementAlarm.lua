@@ -1,166 +1,161 @@
 local WorldQuestAchievementAlarm = LibStub("AceAddon-3.0"):NewAddon("WorldQuestAchievementAlarm", "AceConsole-3.0")
-
 local WQAA = WorldQuestAchievementAlarm
 
-WQAA.questIds = {58207, 58437, 59717, 52798, 51957, 51983, 51173, 50665, 50717, 50899, 51977, 51947, 51974, 51976, 51978, 54415, 54689, 63972, 63836, 63837, 63945, 63846, 63773, 64016, 63989, 64017, 59705}
-WQAA.mapIds = {1536, 1533, 1565, 1525, 863, 864, 942, 896, 1961, 1960}
+local dialogFrame = CreateFrame("Frame", "MainWindow", UIParent, "BackdropTemplate")
+local addTrackerDialog = CreateFrame("Frame", "AddTrackerDialog", dialogFrame, "BackdropTemplate")
+
+local function AddToFrame(QuestTitle)
+	local text = dialogFrame:CreateFontString(dialogFrame, "OVERLAY", "GameTooltipText")
+	text:SetPoint("CENTER", 0, 0)
+	text:SetText(QuestTitle)
+end
+
+local function SeeIfWorldQuestIsActive(questID)
+	local QuestTitle, _, _, _ = C_TaskQuest.GetQuestInfoByQuestID(questID)
+	local isActive = C_TaskQuest.IsActive(questID)
+	if (isActive) then
+		-- Add world quest to frame
+		AddToFrame(QuestTitle)
+		WQAA:Print(QuestTitle .. " is currently active!")
+	end
+end
+
+local function ScanAchievements()
+	for key, value in pairs(WQAAQuestData) do
+		local _, _, _, Completed, _, _, _, _, _, _, _, _ = GetAchievementInfo(key)
+		WQAA:Print("VALUES: " .. key .. " " .. value)
+		if (Completed == false) then
+			SeeIfWorldQuestIsActive(value)
+		end
+	end
+end
+
+-----------------------------------------
+-- UI STUFF START -----------------------
+-----------------------------------------
+
+local function OnCloseButtonPressed(self)
+	self:GetParent():Hide();
+end
+
+local function MarkWindowForMovement(frame)
+	-- Enable moving the dialog
+	frame:EnableMouse(true)
+	frame:SetMovable(true)
+	frame:RegisterForDrag("LeftButton")
+	frame:SetScript("OnDragStart", frame.StartMoving)
+	frame:SetScript("OnDragStop", frame.StopMovingOrSizing)
+	frame:SetScript("OnHide", frame.StopMovingOrSizing)
+end
+
+local function setupStandardFrame(frame, strata, xSize, ySize, point, backgroundAlpha)
+	frame:SetFrameStrata(strata)
+	frame:SetSize(xSize, ySize)
+	frame:SetPoint(point)
+	frame:SetBackdrop({
+		bgFile = "Interface\\ChatFrame\\ChatFrameBackground",
+		edgeFile = "Interface\\ChatFrame\\ChatFrameBackground",
+		edgeSize = 1,
+	})
+	frame:SetBackdropColor(0, 0, 0, backgroundAlpha)
+	frame:SetBackdropBorderColor(0, 0, 0)
+end
+
+local function AddMainUIFrame()
+	-- Main UI frame
+	setupStandardFrame(dialogFrame, "HIGH", 800, 500, "CENTER", 0.75)
+
+	-- Main UI frame title:
+	local title = dialogFrame:CreateFontString(dialogFrame, "OVERLAY", "GameFontNormal")
+	title:SetPoint("TOP", 0, -4)
+	title:SetText("World Quest Achievement Alarm")
+	-- Make it easy to access:
+	dialogFrame.Title = title
+
+	MarkWindowForMovement(dialogFrame)
+
+	-- Scrollframe
+	-- local scrollFrame = CreateFrame("ScrollFrame", "WQAAScrollFrame", dialogFrame, "UIPanelScrollFrameTemplate")
+	-- scrollFrame:SetPoint("LEFT", 16, 0)
+	-- scrollFrame:SetPoint("RIGHT", -32, 0)
+	-- scrollFrame:SetPoint("TOP", 0, -16)
+	-- scrollFrame:SetPoint("BOTTOM", dialogFrame, "TOP", 0, 0)
+	
+	-- Close button
+	dialogFrame.CloseButton = CreateFrame("Button", nil, dialogFrame, "UIPanelCloseButton")
+	dialogFrame.CloseButton:SetPoint("TOPRIGHT", dialogFrame, "TOPRIGHT", 4, 3);
+	dialogFrame.CloseButton:SetScript("OnClick", OnCloseButtonPressed);
+end
+
+local function OpenAddWindow()
+	addTrackerDialog:Show()
+end
+
+local function AddNewTrackedObjectDialog()
+	-- Add new tracked quest dialog
+	setupStandardFrame(addTrackerDialog, "DIALOG", 400, 200, "CENTER", 1)
+	addTrackerDialog:Hide()
+
+	-- Add new tracked WQ dialog title:
+	local title = addTrackerDialog:CreateFontString(addTrackerDialog, "OVERLAY", "GameFontNormal")
+	title:SetPoint("TOP", 0, -4)
+	title:SetText("Add new tracked world quest")
+	-- Make it easy to access:
+	addTrackerDialog.Title = title
+
+	MarkWindowForMovement(addTrackerDialog)
+
+	-- Input fields
+	local achievInput = CreateFrame("EditBox", "achievInput", addTrackerDialog, "ChatFrameEditBoxTemplate")
+	achievInput:SetPoint("LEFT", addTrackerDialog, 20, 0)
+	achievInput:SetPoint("RIGHT", addTrackerDialog, -20, 0)
+	achievInput:SetMultiLine(false)
+	achievInput:SetAutoFocus(true)
+	achievInput:SetScript("OnEscapePressed", function() addTrackerDialog:Hide() end)
+
+	-- Close button
+	addTrackerDialog.CloseButton = CreateFrame("Button", nil, addTrackerDialog, "UIPanelCloseButton")
+	addTrackerDialog.CloseButton:SetPoint("TOPRIGHT", addTrackerDialog, "TOPRIGHT", 4, 3);
+	addTrackerDialog.CloseButton:SetScript("OnClick", OnCloseButtonPressed);
+	
+	-- TrackNew button
+	local TrackNew = CreateFrame("Button", "TrackNew", dialogFrame, "UIPanelButtonTemplate")
+	TrackNew:SetWidth(50)
+	TrackNew:SetHeight(25)
+	TrackNew:SetPoint("BOTTOMLEFT", 5, 5)
+	TrackNew:SetText("Add")
+	TrackNew:RegisterForClicks("AnyUp")
+	TrackNew:SetScript("OnClick", OpenAddWindow)
+end
+
+local function Close()
+    dialogFrame:Hide()
+end
+
+local function Open()
+    dialogFrame:Show()
+end
+
+-----------------------------------------
+-- UI STUFF END -------------------------
+-----------------------------------------
+
+function WQAA:SlashHandler()
+    if dialogFrame:IsShown() then
+        Close()
+    else
+		Open()
+    end
+end
 
 function WQAA:OnInitialize()
 	WQAA:RegisterChatCommand("wqaa", "SlashHandler")
 
-	WQAA.Frame = CreateFrame("Frame", "WorldQuestAchievementAlarm", UIParent)
-	WQAA.Frame:Hide()
-	WQAA.Frame:ClearAllPoints()
-	WQAA.Frame:SetPoint("TOP", "UIParent", "TOP", 0, -225)
-	WQAA.Frame:SetWidth(800)
-	WQAA.Frame:SetHeight(400)
-	WQAA.Frame:SetFrameStrata("DIALOG")
-	WQAA.Frame:SetMovable(true)
-	WQAA.Frame:EnableMouse(true)
-	WQAA.Frame:SetClampedToScreen(true)
-	WQAA.Frame:SetBackdrop({
-		bgFile = "Interface/Tooltips/UI-Tooltip-Background",
-		edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
-		tile = true, tileSize = 16, edgeSize = 16,
-		insets = { left = 4, right = 4, top = 4, bottom = 4 }
-	})
-	WQAA.Frame:SetBackdropColor(0, 0, 0, 1);
-
-	-- Resizing
-	WQAA.Frame:SetResizable(true)
-	WQAA.Frame:SetMinResize(150, 100)
-	local resizeButton = CreateFrame("Button", "WQAAEditBoxResizeButton", ATTEditBox)
-	resizeButton:SetPoint("BOTTOMRIGHT", -6, 7)
-	resizeButton:SetSize(16, 16)
-	resizeButton:SetNormalTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Up")
-	resizeButton:SetHighlightTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Highlight")
-	resizeButton:SetPushedTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Down")
-	resizeButton:SetScript("OnMouseDown", function(self, button)
-		if button == "LeftButton" then
-			f:StartSizing("BOTTOMRIGHT")
-			self:GetHighlightTexture():Hide() -- more noticeable
-		end
-	end)
-	resizeButton:SetScript("OnMouseUp", function(self, button)
-		f:StopMovingOrSizing()
-		self:GetHighlightTexture():Show()
-		eb:SetWidth(sf:GetWidth())
-	end)
-
-	sf = CreateFrame("ScrollFrame", "WQAAEditBoxScrollFrame", WorldQuestAchievementAlarm, "UIPanelScrollFrameTemplate")
-	sf:SetPoint("LEFT", 16, 0)
-	sf:SetPoint("RIGHT", -32, 0)
-	sf:SetPoint("TOP", 0, -16)
-	sf:SetPoint("BOTTOM", ATTEditBoxButton, "TOP", 0, 0)
-end
-
-function WQAA:CheckAvailableWQs()
-	local availableQuests = {}
-	for _, mapId in ipairs(WQAA.mapIds) do
-		WQAA:Print("Getting map info")
-		local mapInfo = C_Map.GetMapInfo(mapId)
-		WQAA:Print("Getting quests by map ID")
-		local mapQuests = C_TaskQuest.GetQuestsForPlayerByMapID(mapId)
-		WQAA:Print(mapQuests)
-		local availableMapQuests = {}
-		for _, info in pairs(mapQuests) do
-			if WQAA:isInTable(WQAA.questIds, info.questId) == true then
-				local questTitle, factionID, capped, displayAsObjective = C_TaskQuest.GetQuestInfoByQuestID(info.questId)
-				table.insert(availableMapQuests, questTitle)
-			end
-		end
-		
-		if next(availableMapQuests) ~= nil then
-			availableQuests[mapInfo.name] = availableMapQuests
-		end
-	end
-	
-	if next(availableQuests) ~= nil then
-		WQAA:Print("Available quests: ")
-		WQAA:Print(availableQuests)
-		for mapName, quests in pairs(availableQuests) do
-			WQAA:Print(quests[1])
-			for index, quest in pairs(quests) do
-				local fontString = WQAA.Frame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-				fontString:SetText(quest)
-				fontString:SetJustifyH("LEFT")
-				fontString:SetJustifyV("TOP")
-	
-				fontString:SetPoint("LEFT", 11, 0)
-				fontString:SetPoint("RIGHT", -12, 0)
-				if index > 1 then
-					-- Change the second 0 if you want some vertical spacing:
-					fontString:SetPoint("TOP", frame.fontStrings[i-1], "BOTTOM", 0, 5)
-				else
-					-- Use the frame's background inset for the vertical offset:
-					fontString:SetPoint("TOP", 0, -12)
-				end
-			end
-		end
-	else
-		WQAA:Print("There are no tracked WQs available right now :(")
-	end
+	AddMainUIFrame()
+	AddNewTrackedObjectDialog()
 end
 
 function WQAA:OnEnable()
 	WQAA:Print("Enabled")
-	WQAA:CheckAvailableWQs()
-	--	WQAA:ToastFakeAchievement()
-end
-
-function WQAA:SlashHandler(input)
-    if WQAA.Frame:IsShown() then
-        WQAA.Close()
-    else
-        WQAA.Open()
-    end
-end
-
-function WQAA:Close()
-    WQAA.Frame:Hide()
-end
-
-function WQAA.Open()
-    WQAA.Frame:Show()
-end
-
-function WQAA:isInTable(tab, val)
-    for index, value in ipairs(tab) do
-        if value == val then
-            return true
-        end
-    end
-    return false
-end 
-
-function WQAA:ToastFakeAchievement()
-	if (Kiosk.IsEnabled()) then
-	  return;
-	end
-	if ( not AchievementFrame ) then
-	  AchievementFrame_LoadUI();
-	end
-
-	WQAA.AlertSystem = AlertFrame:AddQueuedAlertFrameSubSystem("WQAAAlertFrameTemplate", WQAAAlertFrame_SetUp, 4, math.huge)
-	  
-	WQAA.AlertSystem:AddAlert()
-  
-  end
-
-  
-local function WQAAAlertFrame_SetUp(frame)
-	-- An alert flagged as alreadyEarned has more space for the text to display since there's no shield+points icon.
-	local ret = AchievementAlertFrame_SetUp(frame, 5208, false)
-	frame.Name:SetText("test title")
-	frame.Unlocked:SetText("toptext")
-	frame.onClick = function()
-		Calendar_LoadUI()
-		if (Calendar_Show) then  Calendar_Show();  end
-	end
-	frame.delay = 0
-
-	frame.Icon.Texture:SetTexCoord(0, 0, 0, 1, 1, 0, 1, 1)
-	frame.Background:SetTexture("Interface\\AchievementFrame\\UI-Achievement-Alert-Background")
-	--frame.OldAchievement:SetTexture("Interface\\AchievementFrame\\UI-Achievement-Borders")
-	frame.OldAchievement:Hide()
+	ScanAchievements()
 end
