@@ -188,7 +188,6 @@ end
 
 function WQAA:OnInitialize()
 	WQAA:RegisterChatCommand("wqaa", "SlashHandler")
-
 	AddMainUIFrame()
 	AddNewTrackedObjectDialog()
 end
