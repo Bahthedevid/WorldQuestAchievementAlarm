@@ -8,7 +8,6 @@ local addNewWindow = CreateFrame("Frame", "AddTrackerDialog", mainWindow, "Backd
 local mainWindowAddNewButton = CreateFrame("Button", "AddNew", mainWindow, "UIPanelButtonTemplate")
 local addNewWindowAddButton = CreateFrame("Button", "DialogAdd", addNewWindow, "UIPanelButtonTemplate")
 
-
 local function CreateListElement()
 	local firstListEntry = scrollFrame:CreateFontString(scrollFrame, "OVERLAY", "GameFontNormal")
 	firstListEntry:SetPoint("LEFT", scrollFrame, "LEFT")
